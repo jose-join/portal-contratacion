@@ -1,0 +1,653 @@
+{
+  "address": "0x092E2d4E2eCF37541a5439574A5dfF393fAaD85f",
+  "abi": [
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "string",
+          "name": "idPostulante",
+          "type": "string"
+        },
+        {
+          "indexed": false,
+          "internalType": "string",
+          "name": "fechaEntrevista",
+          "type": "string"
+        },
+        {
+          "indexed": false,
+          "internalType": "string",
+          "name": "lugar",
+          "type": "string"
+        }
+      ],
+      "name": "CitacionEntrevista",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "string",
+          "name": "idConvocatoria",
+          "type": "string"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "creador",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "timestamp",
+          "type": "uint256"
+        }
+      ],
+      "name": "ConvocatoriaCreada",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "string",
+          "name": "idConvocatoria",
+          "type": "string"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "eliminador",
+          "type": "address"
+        }
+      ],
+      "name": "ConvocatoriaEliminada",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "string",
+          "name": "idConvocatoria",
+          "type": "string"
+        },
+        {
+          "indexed": false,
+          "internalType": "string",
+          "name": "nuevoEstado",
+          "type": "string"
+        }
+      ],
+      "name": "EstadoConvocatoriaActualizado",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "string",
+          "name": "idConvocatoria",
+          "type": "string"
+        },
+        {
+          "indexed": false,
+          "internalType": "string",
+          "name": "idPostulante",
+          "type": "string"
+        },
+        {
+          "indexed": false,
+          "internalType": "bool",
+          "name": "fueSeleccionado",
+          "type": "bool"
+        }
+      ],
+      "name": "PostulanteSeleccionado",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "string",
+          "name": "idConvocatoria",
+          "type": "string"
+        },
+        {
+          "indexed": false,
+          "internalType": "string[]",
+          "name": "idPostulantes",
+          "type": "string[]"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "timestamp",
+          "type": "uint256"
+        }
+      ],
+      "name": "PostulantesAgregados",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "string",
+          "name": "idConvocatoria",
+          "type": "string"
+        },
+        {
+          "indexed": false,
+          "internalType": "string",
+          "name": "idPostulante",
+          "type": "string"
+        },
+        {
+          "indexed": false,
+          "internalType": "bool",
+          "name": "esApto",
+          "type": "bool"
+        }
+      ],
+      "name": "ResultadoPostulante",
+      "type": "event"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "_idConvocatoria",
+          "type": "string"
+        },
+        {
+          "internalType": "string",
+          "name": "nuevoEstado",
+          "type": "string"
+        }
+      ],
+      "name": "actualizarEstadoConvocatoria",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "_idConvocatoria",
+          "type": "string"
+        },
+        {
+          "internalType": "string[]",
+          "name": "_idPostulantes",
+          "type": "string[]"
+        },
+        {
+          "internalType": "string[]",
+          "name": "_experiencia",
+          "type": "string[]"
+        },
+        {
+          "internalType": "string[]",
+          "name": "_habilidades",
+          "type": "string[]"
+        },
+        {
+          "internalType": "bool[]",
+          "name": "_cumpleRequisitos",
+          "type": "bool[]"
+        }
+      ],
+      "name": "agregarPostulantes",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "contarConvocatorias",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "_idConvocatoria",
+          "type": "string"
+        }
+      ],
+      "name": "contarPostulantes",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "",
+          "type": "string"
+        }
+      ],
+      "name": "convocatorias",
+      "outputs": [
+        {
+          "internalType": "string",
+          "name": "idConvocatoria",
+          "type": "string"
+        },
+        {
+          "internalType": "address",
+          "name": "creador",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "timestamp",
+          "type": "uint256"
+        },
+        {
+          "internalType": "string",
+          "name": "estado",
+          "type": "string"
+        },
+        {
+          "internalType": "uint256",
+          "name": "inicioConvocatoria",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "cierreConvocatoria",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "fechaEvaluacion",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "publicacionResultados",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "_idConvocatoria",
+          "type": "string"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_inicioConvocatoria",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_cierreConvocatoria",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_fechaEvaluacion",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_publicacionResultados",
+          "type": "uint256"
+        }
+      ],
+      "name": "crearConvocatoria",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "_idConvocatoria",
+          "type": "string"
+        }
+      ],
+      "name": "eliminarConvocatoria",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "_idConvocatoria",
+          "type": "string"
+        },
+        {
+          "internalType": "string",
+          "name": "_idPostulante",
+          "type": "string"
+        },
+        {
+          "internalType": "bool",
+          "name": "esApto",
+          "type": "bool"
+        }
+      ],
+      "name": "evaluarPostulante",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "_idConvocatoria",
+          "type": "string"
+        }
+      ],
+      "name": "existeConvocatoria",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "name": "listaConvocatorias",
+      "outputs": [
+        {
+          "internalType": "string",
+          "name": "",
+          "type": "string"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "listarConvocatorias",
+      "outputs": [
+        {
+          "internalType": "string[]",
+          "name": "",
+          "type": "string[]"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "_idConvocatoria",
+          "type": "string"
+        }
+      ],
+      "name": "obtenerConvocatoria",
+      "outputs": [
+        {
+          "components": [
+            {
+              "internalType": "string",
+              "name": "idConvocatoria",
+              "type": "string"
+            },
+            {
+              "internalType": "address",
+              "name": "creador",
+              "type": "address"
+            },
+            {
+              "internalType": "uint256",
+              "name": "timestamp",
+              "type": "uint256"
+            },
+            {
+              "internalType": "string[]",
+              "name": "postulantes",
+              "type": "string[]"
+            },
+            {
+              "internalType": "string",
+              "name": "estado",
+              "type": "string"
+            },
+            {
+              "internalType": "uint256",
+              "name": "inicioConvocatoria",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "cierreConvocatoria",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "fechaEvaluacion",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "publicacionResultados",
+              "type": "uint256"
+            }
+          ],
+          "internalType": "struct ConvocatoriaContract.Convocatoria",
+          "name": "",
+          "type": "tuple"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "_idConvocatoria",
+          "type": "string"
+        },
+        {
+          "internalType": "string",
+          "name": "_idPostulante",
+          "type": "string"
+        }
+      ],
+      "name": "obtenerEstadoPostulante",
+      "outputs": [
+        {
+          "internalType": "string",
+          "name": "",
+          "type": "string"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "_idConvocatoria",
+          "type": "string"
+        }
+      ],
+      "name": "obtenerPostulantes",
+      "outputs": [
+        {
+          "components": [
+            {
+              "internalType": "string",
+              "name": "idPostulante",
+              "type": "string"
+            },
+            {
+              "internalType": "string",
+              "name": "experiencia",
+              "type": "string"
+            },
+            {
+              "internalType": "string",
+              "name": "habilidades",
+              "type": "string"
+            },
+            {
+              "internalType": "string",
+              "name": "estado",
+              "type": "string"
+            },
+            {
+              "internalType": "bool",
+              "name": "cumpleRequisitos",
+              "type": "bool"
+            },
+            {
+              "internalType": "bool",
+              "name": "fueEntrevistado",
+              "type": "bool"
+            },
+            {
+              "internalType": "bool",
+              "name": "fueSeleccionado",
+              "type": "bool"
+            }
+          ],
+          "internalType": "struct ConvocatoriaContract.Postulante[]",
+          "name": "",
+          "type": "tuple[]"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "",
+          "type": "string"
+        },
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "name": "postulantesConvocatoria",
+      "outputs": [
+        {
+          "internalType": "string",
+          "name": "idPostulante",
+          "type": "string"
+        },
+        {
+          "internalType": "string",
+          "name": "experiencia",
+          "type": "string"
+        },
+        {
+          "internalType": "string",
+          "name": "habilidades",
+          "type": "string"
+        },
+        {
+          "internalType": "string",
+          "name": "estado",
+          "type": "string"
+        },
+        {
+          "internalType": "bool",
+          "name": "cumpleRequisitos",
+          "type": "bool"
+        },
+        {
+          "internalType": "bool",
+          "name": "fueEntrevistado",
+          "type": "bool"
+        },
+        {
+          "internalType": "bool",
+          "name": "fueSeleccionado",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "_idConvocatoria",
+          "type": "string"
+        },
+        {
+          "internalType": "string",
+          "name": "_idPostulante",
+          "type": "string"
+        },
+        {
+          "internalType": "string",
+          "name": "fechaEntrevista",
+          "type": "string"
+        },
+        {
+          "internalType": "string",
+          "name": "lugar",
+          "type": "string"
+        }
+      ],
+      "name": "seleccionarParaEntrevista",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ]
+}

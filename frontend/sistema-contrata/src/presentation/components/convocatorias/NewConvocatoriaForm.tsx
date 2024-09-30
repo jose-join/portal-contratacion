@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import Web3 from 'web3';
+import React, { useState } from 'react';
+import axios from 'axios';
 import { FormData, FormDataKey, NestedFormDataKey } from '../../../interfaces/formDataInterfaces';
 import ConvocatoriaDetails from './ConvocatoriaDetails';
 import Requisitos from './Requisitos';
@@ -8,7 +8,6 @@ import ProcesoSeleccion from './ProcesoSeleccion';
 import CondicionesLaborales from './CondicionesLaborales';
 import LugarTrabajo from './LugarTrabajo';
 import FechasImportantes from './FechasImportantes';
-import ConvocatoriaABI from '../../abis/ConvocatoriaABI.json';  // <--- ABI Importada
 
 interface NewConvocatoriaFormProps {
   closeModal: () => void;
@@ -47,50 +46,17 @@ const NewConvocatoriaForm: React.FC<NewConvocatoriaFormProps> = ({ closeModal })
       cierreConvocatoria: '',
       fechaEvaluacion: '',
       publicacionResultados: '',
-    }
+    },
   });
 
-  const [web3, setWeb3] = useState<Web3 | null>(null);
-  const [contract, setContract] = useState<any>(null);
-  const [step, setStep] = useState(1);
-  const [accountsRequested, setAccountsRequested] = useState<boolean>(false);
+  const [step, setStep] = useState<number>(1); // Control del paso actual
   const [error, setError] = useState<string | null>(null);
-
-  const contractAddress = '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512'; // Dirección del contrato
-
-  useEffect(() => {
-    const initializeWeb3 = async () => {
-      if (window.ethereum && !accountsRequested) {
-        const web3Instance = new Web3(window.ethereum as any);
-        setWeb3(web3Instance);
-
-        // Usamos la ABI importada desde el archivo JSON
-        const contractInstance = new web3Instance.eth.Contract(ConvocatoriaABI.abi, contractAddress);
-        setContract(contractInstance);
-
-        try {
-          setAccountsRequested(true);
-          await window.ethereum.request?.({ method: 'eth_requestAccounts' });
-        } catch (error: any) {
-          if (error.code === -32002) {
-            console.warn("MetaMask ya está procesando una solicitud de cuentas. Por favor espera.");
-          } else {
-            console.error("Error al solicitar cuentas de MetaMask:", error);
-          }
-        }
-      } else if (!window.ethereum) {
-        alert('MetaMask no está instalado. Por favor, instala MetaMask para usar esta aplicación.');
-      }
-    };
-
-    initializeWeb3();
-  }, [accountsRequested]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData(prevState => ({
+    setFormData((prevState) => ({
       ...prevState,
-      [name]: value
+      [name]: value,
     }));
   };
 
@@ -99,32 +65,44 @@ const NewConvocatoriaForm: React.FC<NewConvocatoriaFormProps> = ({ closeModal })
     const [section, key] = name.split('.') as [FormDataKey, NestedFormDataKey];
 
     if (section === 'documentosRequeridos' || section === 'procesoSeleccion') {
-      setFormData(prevState => ({
+      setFormData((prevState) => ({
         ...prevState,
         [section]: {
           ...prevState[section],
-          [key]: checked
-        }
+          [key]: checked,
+        },
       }));
     }
   };
 
-  // Función para validar el formulario y enviar los datos
-  const handleSave = () => {
-    if (!formData.titulo || !formData.descripcion || !formData.formacionAcademica || !formData.experienciaLaboral ||
-      !formData.habilidadesTecnicas || !formData.competencias || !formData.lugarTrabajo) {
+  // Función para validar el formulario y enviar los datos al backend
+  const handleSave = async () => {
+    // Validar campos obligatorios
+    if (
+      !formData.titulo ||
+      !formData.descripcion ||
+      !formData.formacionAcademica ||
+      !formData.experienciaLaboral ||
+      !formData.habilidadesTecnicas ||
+      !formData.competencias ||
+      !formData.lugarTrabajo
+    ) {
       setError('Todos los campos de texto deben completarse.');
       return;
     }
 
-    if (!formData.fechasImportantes.inicioConvocatoria || !formData.fechasImportantes.cierreConvocatoria ||
-      !formData.fechasImportantes.fechaEvaluacion || !formData.fechasImportantes.publicacionResultados) {
+    if (
+      !formData.fechasImportantes.inicioConvocatoria ||
+      !formData.fechasImportantes.cierreConvocatoria ||
+      !formData.fechasImportantes.fechaEvaluacion ||
+      !formData.fechasImportantes.publicacionResultados
+    ) {
       setError('Debe completar todas las fechas importantes.');
       return;
     }
 
     if (formData.fechasImportantes.inicioConvocatoria > formData.fechasImportantes.cierreConvocatoria) {
-      setError('La fecha de inicio no puede ser posterior a la fecha de fin.');
+      setError('La fecha de inicio no puede ser posterior a la fecha de cierre.');
       return;
     }
 
@@ -143,52 +121,30 @@ const NewConvocatoriaForm: React.FC<NewConvocatoriaFormProps> = ({ closeModal })
       return;
     }
 
-    console.log("Datos de la Convocatoria:", formData);
     setError(null);
 
-    handleSaveFechasImportantes();
-  };
+    try {
+      // Llamada al backend para crear la nueva convocatoria
+      const response = await axios.post('http://localhost:3000/api/convocatoria', formData, {
+        headers: {
+          'x-auth-token': localStorage.getItem('token') || '', // Asegúrate de enviar el token
+        },
+      });
 
-  const handleSaveFechasImportantes = async () => {
-    if (contract && web3) {
-      try {
-        const accounts = await web3.eth.getAccounts();
-        await await contract.methods.crearConvocatoria(
-          formData.titulo,
-          formData.descripcion,
-          formData.formacionAcademica,
-          formData.experienciaLaboral,
-          formData.habilidadesTecnicas,
-          formData.competencias,
-          formData.documentosRequeridos.cv,
-          formData.documentosRequeridos.dni,
-          formData.documentosRequeridos.certificadosEstudios,
-          formData.documentosRequeridos.certificadosTrabajo,
-          formData.documentosRequeridos.declaracionJurada,
-          formData.procesoSeleccion.evaluacionCurricular,
-          formData.procesoSeleccion.entrevistaPersonal,
-          formData.procesoSeleccion.evaluacionTecnica,
-          formData.procesoSeleccion.evaluacionPsicologica,
-          formData.condicionesLaborales.tipoContrato,
-          formData.condicionesLaborales.salario,
-          formData.condicionesLaborales.jornadaLaboral,
-          formData.fechasImportantes.inicioConvocatoria,
-          formData.fechasImportantes.cierreConvocatoria,
-          formData.fechasImportantes.fechaEvaluacion,
-          formData.fechasImportantes.publicacionResultados,
-          formData.lugarTrabajo
-        ).send({ from: accounts[0] });
-
-        closeModal();
-      } catch (error) {
-        console.error("Error al enviar la transacción:", error);
+      if (response.status === 200) {
+        console.log('Convocatoria creada con éxito:', response.data);
+        closeModal(); // Cerrar el modal si es exitoso
+      } else {
+        console.error('Error al crear la convocatoria:', response.data);
+        setError('Error al crear la convocatoria.');
       }
-    } else {
-      console.error("El contrato o web3 no están inicializados.");
+    } catch (error) {
+      console.error('Error al hacer la solicitud al backend:', error);
+      setError('Error al hacer la solicitud al backend.');
     }
   };
 
-  // Definir funciones de guardado para cada paso
+  // Funciones de guardado para cada paso del formulario
   const handleSaveConvocatoriaDetails = () => setStep(2);
   const handleSaveRequisitos = () => setStep(3);
   const handleSaveDocumentosRequeridos = () => setStep(4);
@@ -234,12 +190,12 @@ const NewConvocatoriaForm: React.FC<NewConvocatoriaFormProps> = ({ closeModal })
           formData={formData.condicionesLaborales}
           handleChange={(e) => {
             const { name, value } = e.target;
-            setFormData(prevState => ({
+            setFormData((prevState) => ({
               ...prevState,
               condicionesLaborales: {
                 ...prevState.condicionesLaborales,
-                [name]: value
-              }
+                [name]: value,
+              },
             }));
           }}
           onSave={handleSaveCondicionesLaborales}
@@ -255,7 +211,7 @@ const NewConvocatoriaForm: React.FC<NewConvocatoriaFormProps> = ({ closeModal })
       {step === 7 && (
         <FechasImportantes
           formData={formData}
-          setFormData={setFormData}  // Pasamos setFormData en lugar de handleChange
+          setFormData={setFormData} // Pasamos setFormData en lugar de handleChange
           onSave={handleSave}
         />
       )}

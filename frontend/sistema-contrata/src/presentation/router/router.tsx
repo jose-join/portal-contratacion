@@ -1,11 +1,17 @@
-import { Navigate, createBrowserRouter } from "react-router-dom";
+import { createBrowserRouter, Navigate } from "react-router-dom";
 import DashboardLayout from "../layouts/DashboardLayout";
 import ConvocatoriasPage from "../pages/convocatorias/Convocatorias";
-import PostulantesPage from "../pages/postulantes/Postulantes";
 import DocumentosPage from "../pages/documentos/Documentos";
 import BlockchainPage from "../pages/blockchain/Blockchain";
+import LoginPage from "../pages/login/Login";
+import PerfilPage from "../pages/perfil/Perfil";
+import MisPostulacionesPage from "../pages/misPostulaciones/MisPostulaciones";
+import ConvocatoriaPostulante from "../pages/convocatoriaPostulante/ConvocatoriaPostulante";
+import RegisterPage from "../pages/register/RegisterPage";
+import AdministrarConvocatoriasPage from "../pages/convocatoriasAdmin/ConvocatoriasAdmin"; // Import the missing component
 
-export const menuRoutes = [
+// Rutas para el administrador
+export const adminMenuRoutes = [
   {
     to: "/convocatorias",
     icon: "fa-solid fa-clipboard-list",
@@ -14,11 +20,11 @@ export const menuRoutes = [
     component: <ConvocatoriasPage />,
   },
   {
-    to: "/postulantes",
-    icon: "fa-solid fa-users",
-    title: "Postulantes",
-    description: "Gestión de postulantes",
-    component: <PostulantesPage />,
+    to: "/administrar-convocatorias", // Nueva ruta
+    icon: "fa-solid fa-cogs",
+    title: "Administrar Convocatorias",
+    description: "Gestionar estados y subir a blockchain",
+    component: <AdministrarConvocatoriasPage />, // El nuevo componente que acabamos de crear
   },
   {
     to: "/documentos",
@@ -36,19 +42,58 @@ export const menuRoutes = [
   },
 ];
 
-export const router = createBrowserRouter([
+// Rutas para el postulante
+export const postulanteMenuRoutes = [
+  {
+    to: "/convocatorias-postulante",
+    icon: "fa-solid fa-clipboard-list",
+    title: "Convocatorias",
+    description: "Ver convocatorias subidas a la blockchain",
+    component: <ConvocatoriaPostulante />, // Nueva página de convocatorias para el postulante
+  },
+  {
+    to: "/perfil",
+    icon: "fa-solid fa-user",
+    title: "Perfil",
+    description: "Gestionar perfil",
+    component: <PerfilPage />,
+  },
+  {
+    to: "/mis-postulaciones",
+    icon: "fa-solid fa-file-signature",
+    title: "Mis Postulaciones",
+    description: "Ver el estado de tus postulaciones",
+    component: <MisPostulacionesPage />,
+  },
+];
+
+const router = createBrowserRouter([
   {
     path: "/",
-    element: <DashboardLayout />,
+    element: <DashboardLayout />, // Usa el mismo DashboardLayout para ambos roles
     children: [
-      ...menuRoutes.map((route) => ({
+      ...adminMenuRoutes.map((route) => ({
+        path: route.to,
+        element: route.component,
+      })),
+      ...postulanteMenuRoutes.map((route) => ({
         path: route.to,
         element: route.component,
       })),
       {
         path: "",
-        element: <Navigate to={menuRoutes[0].to} />,
+        element: <Navigate to="/convocatorias" />, // Redirige a la primera ruta por defecto
       },
     ],
   },
+  {
+    path: "/login",
+    element: <LoginPage />, // Ruta de login
+  },
+  {
+    path: "/registro", // Nueva ruta para registro de postulantes
+    element: <RegisterPage />, // Página de registro
+  },
 ]);
+
+export default router;
