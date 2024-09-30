@@ -1,0 +1,19 @@
+BLOCKCHAIN_URL=http://localhost:8545  # URL de conexión al nodo de la blockchain
+CONTRACT_ADDRESS=prueba  # Dirección del contrato
+
+FIREBASE_API_KEY=AIzaSyDDXGMTFPAtu5VmUNrrlJ-szem5OUXsIwQ
+FIREBASE_AUTH_DOMAIN=portal-contrata-1202f.firebaseapp.com
+FIREBASE_PROJECT_ID=portal-contrata-1202f
+FIREBASE_STORAGE_BUCKET=portal-contrata-1202f.appspot.com
+FIREBASE_MESSAGING_SENDER_ID=382398845592
+FIREBASE_APP_ID=1:382398845592:web:19672655f7ed94e5d236ed
+FIREBASE_MEASUREMENT_ID=G-FQ51W1P2CP
+
+
+PORT=3000
+
+JWT_SECRET=+RgXFMoo/R8XAxmOagD9WsyP6yK8Mr5sQwssj3yF6bU=
+
+PRIVATE_KEY=colocar llave privada de wallet
+ALCHEMY_API_URL=https://opt-mainnet.g.alchemy.com/v2/S2ZOYZUc_b3sPJIBX5yUvayvAErp_2Tc
+ALCHEMY_WS_URL=wss://opt-mainnet.g.alchemy.com/v2/S2ZOYZUc_b3sPJIBX5yUvayvAErp_2Tc
