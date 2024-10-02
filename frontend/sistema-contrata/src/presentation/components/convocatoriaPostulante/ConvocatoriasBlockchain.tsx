@@ -125,6 +125,7 @@ const ConvocatoriasBlockchain: React.FC = () => {
           'x-auth-token': token,
         }
       });
+      console.log('este es el response:', response);
 
       if (!response.ok) {
         throw new Error('Error al finalizar la postulación');

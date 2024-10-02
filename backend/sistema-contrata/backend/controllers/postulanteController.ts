@@ -7,48 +7,52 @@ import { DocumentData, QueryDocumentSnapshot } from 'firebase/firestore'; // Imp
 // Función para postularse a una convocatoria
 export const postularseConvocatoria = async (req: CustomRequest, res: Response) => {
   try {
-    const { idConvocatoria } = req.params;  // ID de la convocatoria a la que el postulante quiere postularse
-    const idPostulante = req.user?.userId;  // Obtener el ID del postulante autenticado desde el token
-    const fechaPostulacion = new Date().toISOString();  // Fecha de la postulación
+    const { idConvocatoria } = req.params;
+    const idPostulante = req.user?.userId;
+    const fechaPostulacion = new Date().toISOString();
 
-    // Verificar que el ID del postulante y de la convocatoria existan
+    console.log('ID Convocatoria:', idConvocatoria); // Agregar log para depurar
+    console.log('ID Postulante:', idPostulante); // Agregar log para depurar
+
     if (!idPostulante || !idConvocatoria) {
       return res.status(400).json({ message: 'Faltan campos requeridos' });
     }
 
-    // Obtener la convocatoria desde Firestore usando el ID
     const convocatoriaDoc = await getDocById('convocatorias', idConvocatoria);
+    console.log('ConvocatoriaDoc:', convocatoriaDoc); // Agregar log para verificar si existe la convocatoria
+
     if (!convocatoriaDoc) {
       return res.status(404).json({ message: 'Convocatoria no encontrada.' });
     }
 
-    // Obtener el nombre de la convocatoria desde el documento de la convocatoria
-    const nombreConvocatoria = convocatoriaDoc.nombre; // Asegúrate de que este campo existe en Firestore
+    const nombreConvocatoria = convocatoriaDoc.data().nombre;
+    console.log('Nombre de la Convocatoria:', nombreConvocatoria); // Verifica que la convocatoria tenga nombre
 
-    // Verificar si el postulante ha subido los documentos necesarios (CV y DNI)
     const documentosSubidos = await queryDocsByField('documentosPostulantes', 'idPostulante', idPostulante);
+    console.log('Documentos Subidos:', documentosSubidos.docs[0].data()); // Verifica si los documentos están correctos
+
     if (!documentosSubidos || documentosSubidos.empty || !documentosSubidos.docs[0].data().cvUrl || !documentosSubidos.docs[0].data().dniUrl) {
       return res.status(400).json({ message: 'Faltan documentos obligatorios para postular (CV y DNI).' });
     }
 
-    // Crear el objeto de postulación, incluyendo el nombre de la convocatoria
     const postulacion = {
       idConvocatoria,
-      nombreConvocatoria, // Incluimos el nombre de la convocatoria
+      nombreConvocatoria,
       idPostulante,
       fechaPostulacion,
-      documentosSubidos: documentosSubidos.docs[0].data(),  // Documentos subidos del postulante (CV, DNI, etc.)
-      estado: 'en proceso',  // Estado inicial
+      documentosSubidos: documentosSubidos.docs[0].data(),
+      estado: 'en proceso',
     };
 
-    // Guardar la postulación en Firestore
     await createDoc('postulaciones', postulacion);
     res.status(200).json({ message: 'Postulación realizada con éxito' });
   } catch (error) {
+    console.error('Error en la postulación:', error); // Agregar log para cualquier otro error
     const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
     res.status(500).json({ error: 'Error al realizar la postulación', details: errorMessage });
   }
 };
+
 
 // Función para subir documentos del postulante
 export const subirDocumentosPostulante = async (req: CustomRequest, res: Response) => {
@@ -99,24 +103,34 @@ export const verPostulaciones = async (req: CustomRequest, res: Response) => {
       const postulacionData = doc.data();
       const idConvocatoria = postulacionData.idConvocatoria;
 
-      // Obtener el documento de la convocatoria desde Firestore
-      const convocatoriaDoc = await getDocById('convocatorias', idConvocatoria);
-      
-      if (convocatoriaDoc) {
-        console.log(`Convocatoria encontrada: ${idConvocatoria}, Título: ${convocatoriaDoc.titulo}`);
-      } else {
-        console.log(`Convocatoria no encontrada: ${idConvocatoria}`);
+      try {
+        // Obtener el documento de la convocatoria desde Firestore
+        const convocatoriaDoc = await getDocById('convocatorias', idConvocatoria);
+
+        let nombreConvocatoria = 'Convocatoria sin título';
+
+        if (convocatoriaDoc.exists()) { // Ahora esto funcionará correctamente
+          const convocatoriaData = convocatoriaDoc.data();  // Asegúrate de obtener los datos del documento
+          console.log(`Convocatoria encontrada: ${idConvocatoria}, Título: ${convocatoriaData.titulo}`);
+          nombreConvocatoria = convocatoriaData?.titulo || nombreConvocatoria;  // Título o valor por defecto
+        } else {
+          console.log(`Convocatoria no encontrada: ${idConvocatoria}`);
+        }
+
+        // Devolver la postulación junto con el nombre de la convocatoria
+        return {
+          id: doc.id, // El ID de la postulación
+          nombreConvocatoria, // Agregar el título (nombre) de la convocatoria
+          ...postulacionData, // El resto de los datos de la postulación
+        };
+      } catch (convocatoriaError) {
+        console.error(`Error al obtener la convocatoria con ID ${idConvocatoria}:`, convocatoriaError);
+        return {
+          id: doc.id,
+          nombreConvocatoria: 'Error al obtener convocatoria', // Mensaje de error para el cliente
+          ...postulacionData,
+        };
       }
-
-      // Obtener el título de la convocatoria (nombre de la convocatoria), o un valor por defecto si no existe
-      const nombreConvocatoria = convocatoriaDoc?.titulo || 'Convocatoria sin título';
-
-      // Devolver la postulación junto con el nombre de la convocatoria
-      return {
-        id: doc.id, // El ID de la postulación
-        nombreConvocatoria, // Agregar el título (nombre) de la convocatoria
-        ...postulacionData, // El resto de los datos de la postulación
-      };
     }));
 
     // Enviar las postulaciones al cliente
@@ -128,3 +142,31 @@ export const verPostulaciones = async (req: CustomRequest, res: Response) => {
     res.status(500).json({ error: 'Error al obtener las postulaciones', details: errorMessage });
   }
 };
+export const verificarPostulacion = async (req: CustomRequest, res: Response) => {
+  try {
+    const idPostulante = req.user?.userId;  // Obtener el ID del postulante desde el token
+    const { idConvocatoria } = req.params; // ID de la convocatoria desde la URL
+
+    if (!idPostulante || !idConvocatoria) {
+      return res.status(400).json({ message: 'Faltan campos requeridos' });
+    }
+
+    // Consultar si ya existe una postulación para esta convocatoria y postulante
+    const querySnapshot = await queryDocsByField('postulaciones', 'idConvocatoria', idConvocatoria);
+
+    // Verificar si el postulante ya se ha postulado
+    const postulacion = querySnapshot.docs.find(doc => doc.data().idPostulante === idPostulante);
+
+    if (postulacion) {
+      // Si ya está postulado, devolver un estado de "postulado"
+      return res.status(200).json({ postulado: true });
+    } else {
+      // Si no está postulado, devolver un estado de "no postulado"
+      return res.status(200).json({ postulado: false });
+    }
+  } catch (error) {
+    console.error('Error al verificar postulación:', error);
+    res.status(500).json({ message: 'Error al verificar postulación', error });
+  }
+};
+

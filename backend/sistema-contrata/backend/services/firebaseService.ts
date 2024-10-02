@@ -18,8 +18,8 @@ export const createDoc = async (collectionName: string, data: any) => {
 export const getDocById = async (collectionName: string, id: string) => {
   const docRef = doc(db, collectionName, id);
   const docSnap = await getDoc(docRef);
-  if (!docSnap.exists()) throw new Error(`${collectionName} no encontrada`);
-  return docSnap.data();
+  if (!docSnap.exists()) throw new Error(`${collectionName} no encontrada`); // Mantener el manejo de error si no existe
+  return docSnap;  // Retornar el DocumentSnapshot completo
 };
 
 // Actualizar un documento en una colección

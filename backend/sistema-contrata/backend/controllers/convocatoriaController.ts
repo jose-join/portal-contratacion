@@ -27,12 +27,14 @@ export const createConvocatoria = async (req: Request, res: Response) => {
 };
 
 // Función para validar una convocatoria en Firebase
+// Función para validar una convocatoria en Firebase
 export const validarConvocatoria = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const convocatoria = await getDocById('convocatorias', id);
+    const convocatoriaSnapshot = await getDocById('convocatorias', id);  // Devuelve el DocumentSnapshot
+    const convocatoria = convocatoriaSnapshot.data();  // Obtiene los datos del documento
 
-    if (convocatoria.subidoBlockchain) {
+    if (convocatoria?.subidoBlockchain) {
       return res.status(400).json({ message: 'La convocatoria ya ha sido subida a la blockchain.' });
     }
 
@@ -45,19 +47,21 @@ export const validarConvocatoria = async (req: Request, res: Response) => {
   }
 };
 
+
 // Función para subir una convocatoria validada a la blockchain
 export const subirConvocatoriaBlockchain = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const convocatoria = await getDocById('convocatorias', id);
+    const convocatoriaSnapshot = await getDocById('convocatorias', id);  // Obtener el DocumentSnapshot
+    const convocatoria = convocatoriaSnapshot.data();  // Extraer los datos
 
     // Verificar si la convocatoria ha sido validada
-    if (!convocatoria.validado) {
+    if (!convocatoria?.validado) {
       return res.status(400).json({ message: 'La convocatoria no ha sido validada.' });
     }
 
     // Extraer las fechas importantes de la convocatoria
-    const { inicioConvocatoria, cierreConvocatoria, fechaEvaluacion, publicacionResultados } = convocatoria.fechasImportantes;
+    const { inicioConvocatoria, cierreConvocatoria, fechaEvaluacion, publicacionResultados } = convocatoria?.fechasImportantes || {};
 
     // Subir la convocatoria a la blockchain
     const resultadoBlockchain = await enviarABlockchain({
@@ -68,7 +72,6 @@ export const subirConvocatoriaBlockchain = async (req: Request, res: Response) =
       publicacionResultados: new Date(publicacionResultados).getTime() / 1000,
     });
 
-    // Si la subida a la blockchain es exitosa, actualizamos Firebase
     if (resultadoBlockchain.success) {
       await updateDocById('convocatorias', id, { subidoBlockchain: true });
       res.status(200).json({ message: 'Convocatoria subida a la blockchain con éxito' });
@@ -81,6 +84,7 @@ export const subirConvocatoriaBlockchain = async (req: Request, res: Response) =
   }
 };
 
+
 // Función para actualizar una convocatoria en Firebase (solo si no ha sido subida a la blockchain)
 export const actualizarConvocatoria = async (req: Request, res: Response) => {
   try {
@@ -88,13 +92,14 @@ export const actualizarConvocatoria = async (req: Request, res: Response) => {
     console.log(`Actualizando convocatoria con ID: ${id}`);  // Verifica que el ID es correcto
 
     const updatedData: FormData = req.body;
-    const convocatoria = await getDocById('convocatorias', id);
+    const convocatoriaSnapshot = await getDocById('convocatorias', id);  // Obtener el DocumentSnapshot
+    const convocatoria = convocatoriaSnapshot.data() as FormData;  // Extraer los datos y asegurarte de que sea del tipo FormData
 
     if (!convocatoria) {
       return res.status(404).json({ message: 'Convocatoria no encontrada.' });
     }
 
-    if (!convocatoria.subidoBlockchain) {
+    if (!convocatoria.subidoBlockchain) {  // Asegúrate de que subidoBlockchain existe y es accesible
       await updateDocById('convocatorias', id, updatedData);
       res.status(200).json({ message: 'Convocatoria actualizada con éxito' });
     } else {
@@ -105,7 +110,6 @@ export const actualizarConvocatoria = async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Error al actualizar la convocatoria', details: errorMessage });
   }
 };
-
 
 // Función para mostrar una convocatoria
 export const mostrarConvocatoria = async (req: Request, res: Response) => {
@@ -134,53 +138,38 @@ export const mostrarTodasConvocatorias = async (req: Request, res: Response) => 
 export const contarPostulantesConvocatoria = async (req: Request, res: Response) => {
   try {
     const { idConvocatoria } = req.params;
+    const convocatoriaSnapshot = await getDocById('convocatorias', idConvocatoria);
+    const convocatoria = convocatoriaSnapshot.data();  // Extraer los datos
 
-    // Obtener la convocatoria para obtener el nombre y el estado
-    const convocatoria = await getDocById('convocatorias', idConvocatoria);
     if (!convocatoria) {
       return res.status(404).json({ message: 'Convocatoria no encontrada.' });
     }
 
-    // Consultar las postulaciones que correspondan a la convocatoria en Firestore
     const postulaciones = await queryDocsByField('postulaciones', 'idConvocatoria', idConvocatoria);
-
-    // Contar el número de postulantes
     const numeroPostulantes = postulaciones.size;
 
-    // Obtener los nombres de los postulantes y sus estados
     const postulantesConEstado = await Promise.all(
       postulaciones.docs.map(async (doc) => {
         const postulanteId = doc.data().idPostulante;
+        const postulanteSnapshot = await getDocById('users', postulanteId);
+        const postulanteData = postulanteSnapshot.data();  // Obtener los datos del postulante
 
-        try {
-          // **Asegúrate de que aquí estás usando la colección correcta**
-          const postulanteData = await getDocById('users', postulanteId);
-
-          if (!postulanteData) {
-            console.warn(`Usuario no encontrado con ID: ${postulanteId}`);
-            return {
-              nombre: `Usuario con ID ${postulanteId} no encontrado`,
-              estado: doc.data().estado || 'Sin estado',
-            };
-          }
-
-          const nombreCompleto = `${postulanteData.nombres} ${postulanteData.apellidos}` || 'Nombre no disponible';
+        if (!postulanteData) {
+          console.warn(`Usuario no encontrado con ID: ${postulanteId}`);
           return {
-            nombre: nombreCompleto,
-            estado: doc.data().estado || 'Sin estado',  // Obtener el estado desde las postulaciones
-          };
-
-        } catch (error) {
-          console.error(`Error al obtener los datos del postulante con ID: ${postulanteId}`, error);
-          return {
-            nombre: `Error al obtener datos para ID ${postulanteId}`,
+            nombre: `Usuario con ID ${postulanteId} no encontrado`,
             estado: doc.data().estado || 'Sin estado',
           };
         }
+
+        const nombreCompleto = `${postulanteData.nombres} ${postulanteData.apellidos}` || 'Nombre no disponible';
+        return {
+          nombre: nombreCompleto,
+          estado: doc.data().estado || 'Sin estado',  // Obtener el estado desde las postulaciones
+        };
       })
     );
 
-    // Devolver los datos solicitados
     res.status(200).json({
       idConvocatoria,
       nombreConvocatoria: convocatoria.titulo || 'Sin título',
@@ -193,13 +182,16 @@ export const contarPostulantesConvocatoria = async (req: Request, res: Response)
   }
 };
 
+
 // Función para subir convocatoria con postulantes a la blockchain y cambiar el estado a "evaluacion"
 export const subirConvocatoriaConPostulantes = async (req: Request, res: Response) => {
   try {
     const { idConvocatoria } = req.params;
 
     // Obtener la convocatoria
-    const convocatoria = await getDocById('convocatorias', idConvocatoria);
+    const convocatoriaSnapshot = await getDocById('convocatorias', idConvocatoria);
+    const convocatoria = convocatoriaSnapshot.data() as FormData;
+
     if (!convocatoria) {
       return res.status(404).json({ message: 'Convocatoria no encontrada.' });
     }
@@ -221,10 +213,10 @@ export const subirConvocatoriaConPostulantes = async (req: Request, res: Respons
     const resultadoBlockchain = await enviarABlockchain({
       id: idConvocatoria,
       postulantes: postulantes, // Lista de IDs de postulantes
-      inicioConvocatoria: new Date(convocatoria.inicioConvocatoria).getTime() / 1000,
-      cierreConvocatoria: new Date(convocatoria.cierreConvocatoria).getTime() / 1000,
-      fechaEvaluacion: new Date(convocatoria.fechaEvaluacion).getTime() / 1000,
-      publicacionResultados: new Date(convocatoria.publicacionResultados).getTime() / 1000,
+      inicioConvocatoria: new Date(convocatoria.fechasImportantes.inicioConvocatoria).getTime() / 1000,
+      cierreConvocatoria: new Date(convocatoria.fechasImportantes.cierreConvocatoria).getTime() / 1000,
+      fechaEvaluacion: new Date(convocatoria.fechasImportantes.fechaEvaluacion).getTime() / 1000,
+      publicacionResultados: new Date(convocatoria.fechasImportantes.publicacionResultados).getTime() / 1000,
     });
 
     // Verificar si el proceso de blockchain fue exitoso
@@ -252,11 +244,17 @@ export const subirConvocatoriaConPostulantes = async (req: Request, res: Respons
 };
 
 
-// Función para eliminar una convocatoria desde la blockchain y Firebase
+
+
 export const eliminarConvocatoria = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const convocatoria = await getDocById('convocatorias', id);
+    const convocatoriaSnapshot = await getDocById('convocatorias', id); // Obtener el DocumentSnapshot
+    const convocatoria = convocatoriaSnapshot.data() as FormData;  // Extraer los datos como FormData
+
+    if (!convocatoria) {
+      return res.status(404).json({ message: 'Convocatoria no encontrada.' });
+    }
 
     // Si la convocatoria ha sido subida a la blockchain, también debe eliminarse de la blockchain
     if (convocatoria.subidoBlockchain) {
@@ -273,13 +271,11 @@ export const eliminarConvocatoria = async (req: Request, res: Response) => {
         if (!resultadoBlockchain.success) {
           // Manejar error al eliminar de la blockchain
           console.error('Error al eliminar la convocatoria en la blockchain:', resultadoBlockchain.error);
-          // Continuar con la eliminación en Firebase aunque falle la eliminación en blockchain
         } else {
           console.log('Convocatoria eliminada de la blockchain:', resultadoBlockchain.transactionHash);
         }
       } catch (error) {
         console.error('Error al interactuar con la blockchain para eliminar la convocatoria:', error);
-        // Continuar con la eliminación en Firebase aunque haya ocurrido un error
       }
     }
 
@@ -291,5 +287,3 @@ export const eliminarConvocatoria = async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Error al eliminar la convocatoria', details: errorMessage });
   }
 };
-
-

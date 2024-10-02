@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { subirDocumentosPostulante, postularseConvocatoria, verPostulaciones } from '../controllers/postulanteController';
+import { subirDocumentosPostulante, postularseConvocatoria, verPostulaciones, verificarPostulacion } from '../controllers/postulanteController';
 import { authMiddleware } from '../middlewares/authMiddleware';
 import { authorizeRole } from '../middlewares/authorizeRole';
 import multer from 'multer';
@@ -37,5 +37,13 @@ router.get(
   authorizeRole(['postulante']),
   verPostulaciones  // Controlador para ver las postulaciones
 );
+// Nueva ruta para verificar si el postulante ya se ha postulado a una convocatoria específica
+router.get(
+  '/ver-postulacion/:idConvocatoria',  // Singular para verificar una postulación específica
+  authMiddleware,
+  authorizeRole(['postulante']),
+  verificarPostulacion  // Controlador que tendrás que crear para manejar la verificación
+);
+
 
 export default router;
