@@ -1,7 +1,6 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
 import DashboardLayout from "../layouts/DashboardLayout";
 import ConvocatoriasPage from "../pages/convocatorias/Convocatorias";
-import DocumentosPage from "../pages/documentos/Documentos";
 import BlockchainPage from "../pages/blockchain/Blockchain";
 import LoginPage from "../pages/login/Login";
 import PerfilPage from "../pages/perfil/Perfil";
@@ -9,6 +8,8 @@ import MisPostulacionesPage from "../pages/misPostulaciones/MisPostulaciones";
 import ConvocatoriaPostulante from "../pages/convocatoriaPostulante/ConvocatoriaPostulante";
 import RegisterPage from "../pages/register/RegisterPage";
 import AdministrarConvocatoriasPage from "../pages/convocatoriasAdmin/ConvocatoriasAdmin"; // Import the missing component
+import MisDocumentos from "../pages/misDocumentos/MisDocumentos";
+import { PrivateRoute } from "./PrivateRoute";
 
 // Rutas para el administrador
 export const adminMenuRoutes = [
@@ -25,13 +26,6 @@ export const adminMenuRoutes = [
     title: "Administrar Convocatorias",
     description: "Gestionar estados y subir a blockchain",
     component: <AdministrarConvocatoriasPage />, // El nuevo componente que acabamos de crear
-  },
-  {
-    to: "/documentos",
-    icon: "fa-solid fa-file-alt",
-    title: "Documentos",
-    description: "Gestión de documentos",
-    component: <DocumentosPage />,
   },
   {
     to: "/blockchain",
@@ -65,12 +59,19 @@ export const postulanteMenuRoutes = [
     description: "Ver el estado de tus postulaciones",
     component: <MisPostulacionesPage />,
   },
+  {
+    to: "/mis-documentos", // Nueva ruta para la página de subir documentos
+    icon: "fa-solid fa-folder-open",
+    title: "Mis Documentos",
+    description: "Subir y gestionar tus documentos",
+    component: <MisDocumentos />, // El componente MisDocumentos que acabamos de crear
+  },
 ];
 
 const router = createBrowserRouter([
   {
-    path: "/",
-    element: <DashboardLayout />, // Usa el mismo DashboardLayout para ambos roles
+    path: "/", // Ruta protegida para el dashboard
+    element: <PrivateRoute component={DashboardLayout} />, // Protegemos el DashboardLayout
     children: [
       ...adminMenuRoutes.map((route) => ({
         path: route.to,
@@ -80,20 +81,17 @@ const router = createBrowserRouter([
         path: route.to,
         element: route.component,
       })),
-      {
-        path: "",
-        element: <Navigate to="/convocatorias" />, // Redirige a la primera ruta por defecto
-      },
     ],
   },
   {
-    path: "/login",
-    element: <LoginPage />, // Ruta de login
+    path: "/login", // Ruta de login pública
+    element: <LoginPage />,
   },
   {
     path: "/registro", // Nueva ruta para registro de postulantes
     element: <RegisterPage />, // Página de registro
   },
 ]);
+
 
 export default router;

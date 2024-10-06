@@ -1,6 +1,7 @@
 // Importaciones de Firebase y Firestore
 import { db } from '../utils/firebaseConfig';
-import { collection, query, where, getDocs, QuerySnapshot, DocumentData, addDoc, getDoc, doc, updateDoc, DocumentReference } from 'firebase/firestore';
+import {Query, CollectionReference,
+  collection, query, where, getDocs, QuerySnapshot, DocumentData, addDoc, getDoc, doc, updateDoc, DocumentReference } from 'firebase/firestore';
 
 // Consultar documentos por un campo específico y devolver el QuerySnapshot completo
 export const queryDocsByField = async (collectionName: string, field: string, value: any): Promise<QuerySnapshot<DocumentData>> => {
@@ -8,6 +9,21 @@ export const queryDocsByField = async (collectionName: string, field: string, va
   const snapshot = await getDocs(q);  // Ejecutar la consulta y obtener el QuerySnapshot
   return snapshot;  // Retornar el QuerySnapshot completo
 };
+// Consultar documentos por múltiples campos
+export const queryDocsByFields = async (collectionName: string, fields: { [key: string]: any }): Promise<QuerySnapshot<DocumentData>> => {
+  // Inicia la consulta como una referencia de colección
+  let q: Query<DocumentData> = collection(db, collectionName) as CollectionReference<DocumentData>;
+  
+  // Agregar condiciones a la consulta para cada campo
+  for (const [field, value] of Object.entries(fields)) {
+    q = query(q, where(field, '==', value));
+  }
+
+  // Ejecutar la consulta y obtener el QuerySnapshot
+  const snapshot = await getDocs(q); 
+  return snapshot;  // Retornar el QuerySnapshot completo
+};
+
 // Crear un nuevo documento en una colección
 export const createDoc = async (collectionName: string, data: any) => {
   const docRef = await addDoc(collection(db, collectionName), data);

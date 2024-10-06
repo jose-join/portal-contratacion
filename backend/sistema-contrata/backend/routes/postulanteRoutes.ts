@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { subirDocumentosPostulante, postularseConvocatoria, verPostulaciones, verificarPostulacion } from '../controllers/postulanteController';
+import { subirDocumentosPostulante, postularseConvocatoria, verPostulaciones, verificarPostulacion, obtenerDocumentosPostulante } from '../controllers/postulanteController';
 import { authMiddleware } from '../middlewares/authMiddleware';
 import { authorizeRole } from '../middlewares/authorizeRole';
 import multer from 'multer';
@@ -14,12 +14,15 @@ const router = Router();
 router.post(
   '/subir-documentos',
   authMiddleware,
-  authorizeRole(['postulante']),
+  authorizeRole(['postulante']),  // Asegurar que solo los postulantes pueden acceder a esta ruta
   upload.fields([
     { name: 'cv', maxCount: 1 },
-    { name: 'dni', maxCount: 1 }
-  ]),
-  subirDocumentosPostulante  // Controlador para manejar la subida
+    { name: 'dni', maxCount: 1 },
+    { name: 'certificadosEstudios', maxCount: 1 },
+    { name: 'certificadosTrabajo', maxCount: 1 },
+    { name: 'declaracionJurada', maxCount: 1 }
+  ]),  // Permitimos subir uno o varios documentos a la vez
+  subirDocumentosPostulante  // Controlador para manejar la subida de documentos
 );
 
 // Ruta para postularse a una convocatoria
@@ -44,6 +47,13 @@ router.get(
   authorizeRole(['postulante']),
   verificarPostulacion  // Controlador que tendrás que crear para manejar la verificación
 );
+router.get(
+  '/obtener-documentos',
+  authMiddleware,
+  authorizeRole(['postulante']),
+  obtenerDocumentosPostulante  // Controlador para obtener los documentos subidos
+);
+
 
 
 export default router;

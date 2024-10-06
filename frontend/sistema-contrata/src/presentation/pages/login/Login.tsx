@@ -30,7 +30,7 @@ const LoginPage = () => {
           navigate("/convocatorias"); // Redirigir a convocatorias o cualquier otra ruta existente
         } else if (data.role === "postulante") {
           setMessage("Te has logueado como Postulante. Redirigiendo al Dashboard de Postulante...");
-          navigate("/convocatorias"); // Redirigir a la ruta para postulantes
+          navigate("/convocatorias-postulante"); // Redirigir a la ruta para postulantes
         }
       } else {
         setMessage(data.message || "Error en el inicio de sesión");

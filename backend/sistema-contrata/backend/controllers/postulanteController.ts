@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { CustomRequest } from '../middlewares/authMiddleware';
 import { subirDocumento } from '../services/documentUploadService';
-import { createDoc, getDocById, queryDocsByField } from '../services/firebaseService';
+import { createDoc, getDocById, queryDocsByField, queryDocsByFields, updateDocById } from '../services/firebaseService';
 import { DocumentData, QueryDocumentSnapshot } from 'firebase/firestore'; // Importar desde 'firebase/firestore'
 
 // Función para postularse a una convocatoria
@@ -11,79 +11,187 @@ export const postularseConvocatoria = async (req: CustomRequest, res: Response) 
     const idPostulante = req.user?.userId;
     const fechaPostulacion = new Date().toISOString();
 
-    console.log('ID Convocatoria:', idConvocatoria); // Agregar log para depurar
-    console.log('ID Postulante:', idPostulante); // Agregar log para depurar
+    console.log('ID Postulante:', idPostulante);
+    console.log('ID Convocatoria:', idConvocatoria);
 
     if (!idPostulante || !idConvocatoria) {
-      return res.status(400).json({ message: 'Faltan campos requeridos' });
+      return res.status(400).json({ message: 'Faltan campos requeridos (idPostulante o idConvocatoria).' });
     }
 
+    // Verificar si la convocatoria existe
     const convocatoriaDoc = await getDocById('convocatorias', idConvocatoria);
-    console.log('ConvocatoriaDoc:', convocatoriaDoc); // Agregar log para verificar si existe la convocatoria
-
-    if (!convocatoriaDoc) {
+    if (!convocatoriaDoc.exists) {
+      console.log('Error: Convocatoria no encontrada');
       return res.status(404).json({ message: 'Convocatoria no encontrada.' });
     }
 
-    const nombreConvocatoria = convocatoriaDoc.data().nombre;
-    console.log('Nombre de la Convocatoria:', nombreConvocatoria); // Verifica que la convocatoria tenga nombre
+    const convocatoria = convocatoriaDoc.data();
+    const { titulo, documentosRequeridos } = convocatoria;
 
-    const documentosSubidos = await queryDocsByField('documentosPostulantes', 'idPostulante', idPostulante);
-    console.log('Documentos Subidos:', documentosSubidos.docs[0].data()); // Verifica si los documentos están correctos
+    console.log('Convocatoria encontrada:', convocatoria);
+    console.log('Documentos requeridos:', documentosRequeridos);
 
-    if (!documentosSubidos || documentosSubidos.empty || !documentosSubidos.docs[0].data().cvUrl || !documentosSubidos.docs[0].data().dniUrl) {
-      return res.status(400).json({ message: 'Faltan documentos obligatorios para postular (CV y DNI).' });
+    // Verificar si el postulante ya se ha postulado a esta convocatoria
+    const postulacionExistente = await queryDocsByFields('postulaciones', {
+      idConvocatoria,
+      idPostulante
+    });
+
+    console.log('Postulación existente:', !postulacionExistente.empty);
+
+    if (!postulacionExistente.empty) {
+      return res.status(400).json({ message: 'Ya te has postulado a esta convocatoria. No puedes postularte dos veces.' });
     }
 
+    // Verificar que los documentos requeridos hayan sido subidos
+    const documentosSubidos = await queryDocsByField('documentosPostulantes', 'idPostulante', idPostulante);
+    if (!documentosSubidos || documentosSubidos.empty) {
+      return res.status(400).json({ message: 'No has subido ningún documento. Ve a "Mis Documentos" para subirlos.' });
+    }
+
+    const documentos = documentosSubidos.docs[0].data();
+
+    console.log('Documentos subidos:', documentos);
+
+    // Verificar qué documentos faltan
+    const documentosFaltantes: string[] = [];
+
+    if (documentosRequeridos.cv && !documentos.cvUrl) {
+      documentosFaltantes.push('CV');
+    }
+    if (documentosRequeridos.dni && !documentos.dniUrl) {
+      documentosFaltantes.push('DNI');
+    }
+    if (documentosRequeridos.certificadosEstudios && !documentos.certificadosEstudiosUrl) {
+      documentosFaltantes.push('Certificados de Estudios');
+    }
+    if (documentosRequeridos.certificadosTrabajo && !documentos.certificadosTrabajoUrl) {
+      documentosFaltantes.push('Certificados de Trabajo');
+    }
+    if (documentosRequeridos.declaracionJurada && !documentos.declaracionJuradaUrl) {
+      documentosFaltantes.push('Declaración Jurada');
+    }
+
+    console.log('Documentos faltantes:', documentosFaltantes);
+
+    // Si faltan documentos, devolver un mensaje específico
+    if (documentosFaltantes.length > 0) {
+      return res.status(400).json({
+        message: `Faltan los siguientes documentos: ${documentosFaltantes.join(', ')}. Por favor, ve a "Mis Documentos" para subirlos.`
+      });
+    }
+
+    // Crear nueva postulación si todos los documentos requeridos están presentes
     const postulacion = {
       idConvocatoria,
-      nombreConvocatoria,
+      nombreConvocatoria: titulo,
       idPostulante,
       fechaPostulacion,
-      documentosSubidos: documentosSubidos.docs[0].data(),
+      documentosSubidos: documentos,
       estado: 'en proceso',
     };
 
+    console.log('Postulación a crear:', postulacion);
+
     await createDoc('postulaciones', postulacion);
-    res.status(200).json({ message: 'Postulación realizada con éxito' });
+
+    console.log('Postulación creada con éxito:', postulacion);
+
+    return res.status(201).json({ message: 'Postulación realizada con éxito' });
+
   } catch (error) {
-    console.error('Error en la postulación:', error); // Agregar log para cualquier otro error
+    console.error('Error en la postulación:', error); 
     const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
-    res.status(500).json({ error: 'Error al realizar la postulación', details: errorMessage });
+    return res.status(500).json({ error: 'Error al realizar la postulación', details: errorMessage });
   }
 };
 
 
-// Función para subir documentos del postulante
 export const subirDocumentosPostulante = async (req: CustomRequest, res: Response) => {
   try {
     const idPostulante = req.user?.userId;  // Obtener el ID del postulante desde el token
 
-    // Verificar que los archivos obligatorios (CV y DNI) hayan sido subidos
+    // Acceder a los archivos subidos (uno o varios)
     const files = req.files as { [fieldname: string]: Express.Multer.File[] };
-    if (!files || !files['cv'] || !files['dni']) {
-      return res.status(400).json({ message: 'El CV y el DNI son documentos obligatorios.' });
+    
+    // Verificar si al menos un archivo ha sido subido
+    if (!files || Object.keys(files).length === 0) {
+      return res.status(400).json({ message: 'Debes subir al menos un documento.' });
     }
-    const cvFile = files['cv'][0];  // Accede al archivo CV
-    const dniFile = files['dni'][0];  // Accede al archivo DNI
 
-    // Subir los archivos a Firebase Storage
-    const cvUrl = await subirDocumento(cvFile.buffer, `postulantes/${idPostulante}/cv.pdf`);
-    const dniUrl = await subirDocumento(dniFile.buffer, `postulantes/${idPostulante}/dni.pdf`);
+    // Variables para almacenar las URLs de los documentos
+    let cvUrl = null;
+    let dniUrl = null;
+    let certificadosEstudiosUrl = null;
+    let certificadosTrabajoUrl = null;
+    let declaracionJuradaUrl = null;
 
-    // Crear el objeto de documentos subidos
-    const documentosSubidos = {
-      idPostulante,
-      cvUrl,
-      dniUrl,
-    };
+    const timestamp = new Date().getTime(); // Para generar nombres únicos si es necesario
 
-    // Guardar en Firestore
-    await createDoc('documentosPostulantes', documentosSubidos);
-    res.status(200).json({ message: 'Documentos subidos con éxito.', documentosSubidos });
+    // Subir solo los documentos que han sido enviados
+    if (files['cv']) {
+      const cvFile = files['cv'][0];
+      cvUrl = await subirDocumento(cvFile.buffer, `postulantes/${idPostulante}/cv_${timestamp}.pdf`);
+    }
+    
+    if (files['dni']) {
+      const dniFile = files['dni'][0];
+      dniUrl = await subirDocumento(dniFile.buffer, `postulantes/${idPostulante}/dni_${timestamp}.pdf`);
+    }
+
+    if (files['certificadosEstudios']) {
+      const certificadosEstudiosFile = files['certificadosEstudios'][0];
+      certificadosEstudiosUrl = await subirDocumento(certificadosEstudiosFile.buffer, `postulantes/${idPostulante}/certificadosEstudios_${timestamp}.pdf`);
+    }
+
+    if (files['certificadosTrabajo']) {
+      const certificadosTrabajoFile = files['certificadosTrabajo'][0];
+      certificadosTrabajoUrl = await subirDocumento(certificadosTrabajoFile.buffer, `postulantes/${idPostulante}/certificadosTrabajo_${timestamp}.pdf`);
+    }
+
+    if (files['declaracionJurada']) {
+      const declaracionJuradaFile = files['declaracionJurada'][0];
+      declaracionJuradaUrl = await subirDocumento(declaracionJuradaFile.buffer, `postulantes/${idPostulante}/declaracionJurada_${timestamp}.pdf`);
+    }
+
+    // Verificar si ya existen documentos subidos para este postulante
+    const documentosExistentes = await queryDocsByField('documentosPostulantes', 'idPostulante', idPostulante);
+
+    if (!documentosExistentes.empty) {
+      // Si ya existen documentos, actualizar el documento existente
+      const docId = documentosExistentes.docs[0].id;
+      
+      // Actualizar solo los documentos que hayan sido subidos
+      const updateData: any = {};
+      if (cvUrl) updateData.cvUrl = cvUrl;
+      if (dniUrl) updateData.dniUrl = dniUrl;
+      if (certificadosEstudiosUrl) updateData.certificadosEstudiosUrl = certificadosEstudiosUrl;
+      if (certificadosTrabajoUrl) updateData.certificadosTrabajoUrl = certificadosTrabajoUrl;
+      if (declaracionJuradaUrl) updateData.declaracionJuradaUrl = declaracionJuradaUrl;
+
+      await updateDocById('documentosPostulantes', docId, updateData);
+
+      return res.status(200).json({ message: 'Documentos actualizados con éxito.' });
+    } else {
+      // Si no existen documentos, crear un nuevo documento
+      const documentosSubidos = {
+        idPostulante,
+        cvUrl,
+        dniUrl,
+        certificadosEstudiosUrl,
+        certificadosTrabajoUrl,
+        declaracionJuradaUrl,
+      };
+
+      await createDoc('documentosPostulantes', documentosSubidos);
+
+      return res.status(200).json({ message: 'Documentos subidos con éxito.', documentosSubidos });
+    }
+
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
-    res.status(500).json({ error: 'Error al subir los documentos', details: errorMessage });
+      console.error('Error en subirDocumentosPostulante:', error); // Log para depurar el error
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      return res.status(500).json({ error: 'Error al subir los documentos', details: errorMessage });
   }
 };
 
@@ -167,6 +275,32 @@ export const verificarPostulacion = async (req: CustomRequest, res: Response) =>
   } catch (error) {
     console.error('Error al verificar postulación:', error);
     res.status(500).json({ message: 'Error al verificar postulación', error });
+  }
+};
+
+export const obtenerDocumentosPostulante = async (req: CustomRequest, res: Response) => {
+  try {
+    const idPostulante = req.user?.userId;
+
+    // Verificar si el postulante tiene documentos subidos
+    const documentosExistentes = await queryDocsByField('documentosPostulantes', 'idPostulante', idPostulante);
+
+    if (!documentosExistentes.empty) {
+      const documentos = documentosExistentes.docs[0].data();
+
+      // Asegúrate de utilizar los nombres correctos de los campos en Firestore
+      return res.status(200).json({
+        certificadosEstudios: documentos.certificadosEstudiosUrl || null,  // Ahora accede a certificadosEstudiosUrl
+        certificadosTrabajo: documentos.certificadosTrabajoUrl || null,    // Ahora accede a certificadosTrabajoUrl
+        cv: documentos.cvUrl || null,                                     // Acceso a cvUrl
+        declaracionJurada: documentos.declaracionJuradaUrl || null,        // Ahora accede a declaracionJuradaUrl
+        dni: documentos.dniUrl || null                                    // Acceso a dniUrl
+      });
+    } else {
+      return res.status(200).json({ message: 'No se encontraron documentos subidos.' });
+    }
+  } catch (error) {
+    return res.status(500).json({ message: 'Error al obtener los documentos del postulante.', error });
   }
 };
 
