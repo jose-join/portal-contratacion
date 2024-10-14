@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "start:dev": "nodemon --watch backend --ext ts,json --exec \"npx ts-node\" backend/server.ts"
+    "start:dev": "nodemon --watch backend --ext ts,json --exec \"npx ts-node\" backend/server.ts",
+    "test": "jest"
   },
   "keywords": [],
   "author": "",
@@ -11,23 +12,34 @@
   "description": "",
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "@nomiclabs/hardhat-web3": "^2.0.0",
+    "@typechain/web3-v1": "^6.0.7",
     "@types/bcryptjs": "^2.4.6",
+    "@types/chai": "^5.0.0",
     "@types/concat-stream": "^2.0.3",
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
     "@types/express-validator": "^3.0.0",
     "@types/form-data": "^2.5.0",
     "@types/glob": "^8.1.0",
+    "@types/jest": "^29.5.13",
     "@types/jsonwebtoken": "^9.0.7",
     "@types/minimatch": "^5.1.2",
     "@types/mocha": "^10.0.7",
     "@types/multer": "^1.4.12",
     "@types/node": "^22.5.5",
     "@types/qs": "^6.9.15",
+    "@types/supertest": "^6.0.2",
+    "@types/uuid": "^10.0.0",
     "hardhat": "^2.22.9",
+    "jest": "^29.7.0",
     "nodemon": "^3.1.7",
+    "supertest": "^7.0.0",
+    "ts-jest": "^29.2.5",
     "ts-node": "^10.9.2",
-    "typescript": "^5.6.2"
+    "typechain": "^8.3.2",
+    "typescript": "^5.6.2",
+    "web3": "^4.13.0"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -36,14 +48,14 @@
     "dotenv": "^16.4.5",
     "express": "^4.21.0",
     "express-validator": "^7.2.0",
-    "firebase": "^10.13.2",
+    "firebase": "^10.14.0",
+    "firebase-admin": "^12.6.0",
     "form-data": "^4.0.0",
     "glob": "^11.0.0",
     "jsonwebtoken": "^9.0.2",
     "minimatch": "^10.0.1",
     "mocha": "^10.7.3",
     "multer": "^1.4.5-lts.1",
-    "qs": "^6.13.0",
-    "web3": "^4.13.0"
+    "qs": "^6.13.0"
   }
 }

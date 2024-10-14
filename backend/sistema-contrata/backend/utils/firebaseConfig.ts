@@ -2,7 +2,7 @@ import dotenv from 'dotenv';
 dotenv.config();  // Cargar las variables de entorno desde el archivo .env
 
 import { initializeApp } from "firebase/app";
-import { getFirestore, collection, getDocs } from "firebase/firestore";  // Inicializamos Firestore
+import { getFirestore, collection, getDocs, terminate } from "firebase/firestore";  // Inicializamos Firestore
 import { getAuth } from "firebase/auth";
 import { getStorage } from "firebase/storage";
 
@@ -29,19 +29,5 @@ export const auth = getAuth(app);
 // Inicializamos Firebase Storage
 export const storage = getStorage(app);
 
-// Prueba de conexión a Firestore
-const testConnection = async () => {
-  try {
-    const testCollection = collection(db, 'test');  // Acceder a la colección 'test'
-    const snapshot = await getDocs(testCollection);  // Obtener documentos de la colección
-    if (!snapshot.empty) {
-      console.log('Conexión a Firestore exitosa, documentos encontrados:', snapshot.docs.length);
-    } else {
-      console.log('Conexión a Firestore exitosa, pero no hay documentos en la colección.');
-    }
-  } catch (err) {
-    console.error("Error conectando a Firestore:", err);
-  }
-};
+  // Ejecutamos la prueba de conexión
 
-testConnection();  // Ejecutamos la prueba de conexión

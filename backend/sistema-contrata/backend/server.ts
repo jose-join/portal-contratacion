@@ -33,7 +33,13 @@ app.use('/api/blockchain', blockchainRoutes);
 
 escucharEventos();
 
-// Iniciar el servidor
-app.listen(PORT, () => {
-  console.log(`Servidor corriendo en el puerto ${PORT}`);
-});
+// Iniciar el servidor solo si no es un entorno de prueba
+if (process.env.NODE_ENV !== 'test') {
+  escucharEventos();
+  app.listen(PORT, () => {
+    console.log(`Servidor corriendo en el puerto ${PORT}`);
+  });
+}
+
+// Exporta la instancia de app para usarla en las pruebas
+export default app;

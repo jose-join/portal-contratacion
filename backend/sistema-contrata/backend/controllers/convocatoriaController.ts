@@ -1,4 +1,4 @@
-import { FormData } from '../models/formData'; 
+import { FormData } from '../models/formData';
 import { Request, Response } from 'express';
 import { enviarABlockchain } from '../services/blockchainService';  // Interacción con la blockchain
 import {
@@ -25,8 +25,6 @@ export const createConvocatoria = async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Error al crear la convocatoria en Firebase', details: errorMessage });
   }
 };
-
-// Función para validar una convocatoria en Firebase
 // Función para validar una convocatoria en Firebase
 export const validarConvocatoria = async (req: Request, res: Response) => {
   try {
@@ -46,45 +44,6 @@ export const validarConvocatoria = async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Error al validar la convocatoria', details: errorMessage });
   }
 };
-
-
-// Función para subir una convocatoria validada a la blockchain
-export const subirConvocatoriaBlockchain = async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
-    const convocatoriaSnapshot = await getDocById('convocatorias', id);  // Obtener el DocumentSnapshot
-    const convocatoria = convocatoriaSnapshot.data();  // Extraer los datos
-
-    // Verificar si la convocatoria ha sido validada
-    if (!convocatoria?.validado) {
-      return res.status(400).json({ message: 'La convocatoria no ha sido validada.' });
-    }
-
-    // Extraer las fechas importantes de la convocatoria
-    const { inicioConvocatoria, cierreConvocatoria, fechaEvaluacion, publicacionResultados } = convocatoria?.fechasImportantes || {};
-
-    // Subir la convocatoria a la blockchain
-    const resultadoBlockchain = await enviarABlockchain({
-      id,
-      inicioConvocatoria: new Date(inicioConvocatoria).getTime() / 1000,
-      cierreConvocatoria: new Date(cierreConvocatoria).getTime() / 1000,
-      fechaEvaluacion: new Date(fechaEvaluacion).getTime() / 1000,
-      publicacionResultados: new Date(publicacionResultados).getTime() / 1000,
-    });
-
-    if (resultadoBlockchain.success) {
-      await updateDocById('convocatorias', id, { subidoBlockchain: true });
-      res.status(200).json({ message: 'Convocatoria subida a la blockchain con éxito' });
-    } else {
-      res.status(500).json({ message: 'Error al subir la convocatoria a la blockchain' });
-    }
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
-    res.status(500).json({ error: 'Error al subir la convocatoria a la blockchain', details: errorMessage });
-  }
-};
-
-
 // Función para actualizar una convocatoria en Firebase (solo si no ha sido subida a la blockchain)
 export const actualizarConvocatoria = async (req: Request, res: Response) => {
   try {
@@ -133,7 +92,6 @@ export const mostrarTodasConvocatorias = async (req: Request, res: Response) => 
     res.status(500).json({ error: 'Error al obtener las convocatorias', details: errorMessage });
   }
 };
-
 // Función para contar el número de postulantes en una convocatoria específica
 export const contarPostulantesConvocatoria = async (req: Request, res: Response) => {
   try {
@@ -182,7 +140,41 @@ export const contarPostulantesConvocatoria = async (req: Request, res: Response)
   }
 };
 
+// Función para subir una convocatoria validada a la blockchain
+export const subirConvocatoriaBlockchain = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const convocatoriaSnapshot = await getDocById('convocatorias', id);  // Obtener el DocumentSnapshot
+    const convocatoria = convocatoriaSnapshot.data();  // Extraer los datos
 
+    // Verificar si la convocatoria ha sido validada
+    if (!convocatoria?.validado) {
+      return res.status(400).json({ message: 'La convocatoria no ha sido validada.' });
+    }
+
+    // Extraer las fechas importantes de la convocatoria
+    const { inicioConvocatoria, cierreConvocatoria, fechaEvaluacion, publicacionResultados } = convocatoria?.fechasImportantes || {};
+
+    // Subir la convocatoria a la blockchain
+    const resultadoBlockchain = await enviarABlockchain({
+      id,
+      inicioConvocatoria: new Date(inicioConvocatoria).getTime() / 1000,
+      cierreConvocatoria: new Date(cierreConvocatoria).getTime() / 1000,
+      fechaEvaluacion: new Date(fechaEvaluacion).getTime() / 1000,
+      publicacionResultados: new Date(publicacionResultados).getTime() / 1000,
+    });
+
+    if (resultadoBlockchain.success) {
+      await updateDocById('convocatorias', id, { subidoBlockchain: true });
+      res.status(200).json({ message: 'Convocatoria subida a la blockchain con éxito' });
+    } else {
+      res.status(500).json({ message: 'Error al subir la convocatoria a la blockchain' });
+    }
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+    res.status(500).json({ error: 'Error al subir la convocatoria a la blockchain', details: errorMessage });
+  }
+};
 // Función para subir convocatoria con postulantes a la blockchain y cambiar el estado a "evaluacion"
 export const subirConvocatoriaConPostulantes = async (req: Request, res: Response) => {
   try {
@@ -209,42 +201,51 @@ export const subirConvocatoriaConPostulantes = async (req: Request, res: Respons
       return res.status(404).json({ message: 'No hay postulantes para esta convocatoria' });
     }
 
-    // Enviar la convocatoria y los postulantes a la blockchain
-    const resultadoBlockchain = await enviarABlockchain({
-      id: idConvocatoria,
-      postulantes: postulantes, // Lista de IDs de postulantes
-      inicioConvocatoria: new Date(convocatoria.fechasImportantes.inicioConvocatoria).getTime() / 1000,
-      cierreConvocatoria: new Date(convocatoria.fechasImportantes.cierreConvocatoria).getTime() / 1000,
-      fechaEvaluacion: new Date(convocatoria.fechasImportantes.fechaEvaluacion).getTime() / 1000,
-      publicacionResultados: new Date(convocatoria.fechasImportantes.publicacionResultados).getTime() / 1000,
-    });
+    try {
+      // Enviar la convocatoria y los postulantes a la blockchain
+      const resultadoBlockchain = await enviarABlockchain({
+        id: idConvocatoria,
+        postulantes: postulantes, // Lista de IDs de postulantes
+        inicioConvocatoria: new Date(convocatoria.fechasImportantes.inicioConvocatoria).getTime() / 1000,
+        cierreConvocatoria: new Date(convocatoria.fechasImportantes.cierreConvocatoria).getTime() / 1000,
+        fechaEvaluacion: new Date(convocatoria.fechasImportantes.fechaEvaluacion).getTime() / 1000,
+        publicacionResultados: new Date(convocatoria.fechasImportantes.publicacionResultados).getTime() / 1000,
+      });
 
-    // Verificar si el proceso de blockchain fue exitoso
-    if (resultadoBlockchain.success) {
-      // Actualizar la convocatoria en Firebase
-      await updateDocById('convocatorias', idConvocatoria, { subidoBlockchain: true, estado: 'evaluacion' });
+      // Verificar si el proceso de blockchain fue exitoso
+      if (resultadoBlockchain.success) {
+        // Actualizar la convocatoria en Firebase
+        await updateDocById('convocatorias', idConvocatoria, { subidoBlockchain: true, estado: 'evaluacion' });
 
-      // Actualizar el estado de los postulantes a "evaluacion"
-      await Promise.all(
-        postulantesSnapshot.docs.map(async (doc) => {
-          await updateDocById('postulaciones', doc.id, { estado: 'evaluacion' });
-        })
-      );
+        // Actualizar el estado de los postulantes a "evaluacion"
+        await Promise.all(
+          postulantesSnapshot.docs.map(async (doc) => {
+            await updateDocById('postulaciones', doc.id, { estado: 'evaluacion' });
+          })
+        );
 
-      res.status(200).json({ message: 'Convocatoria y postulantes subidos a la blockchain con éxito, estado actualizado a evaluación.' });
-    } else {
-      console.error('Error al subir a la blockchain:', resultadoBlockchain);
-      res.status(500).json({ message: 'Error al subir la convocatoria con postulantes a la blockchain.' });
+        return res.status(200).json({ message: 'Convocatoria y postulantes subidos a la blockchain con éxito, estado actualizado a evaluación.' });
+      } else {
+        // Error en la respuesta de la blockchain
+        console.error('Error en la respuesta de la blockchain:', resultadoBlockchain.error);
+        return res.status(500).json({ message: 'Error al subir la convocatoria con postulantes a la blockchain.', blockchainError: resultadoBlockchain.error });
+      }
+    } catch (blockchainError) {
+      // Errores al intentar interactuar con la blockchain
+      console.error('Error al interactuar con la blockchain:', blockchainError);
+      return res.status(500).json({
+        message: 'Error al interactuar con la blockchain',
+        blockchainError: blockchainError instanceof Error ? blockchainError.message : 'Error desconocido en la blockchain',
+      });
     }
-  } catch (error) {
-    console.error('Error en la función subirConvocatoriaConPostulantes:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
-    res.status(500).json({ error: 'Error al subir la convocatoria con postulantes a la blockchain.', details: errorMessage });
+
+  } catch (firebaseError) {
+    // Captura cualquier error en el proceso de obtención de la convocatoria o postulantes
+    console.error('Error en la función subirConvocatoriaConPostulantes:', firebaseError);
+    const errorMessage = firebaseError instanceof Error ? firebaseError.message : 'Error desconocido';
+    return res.status(500).json({ error: 'Error al subir la convocatoria con postulantes a la blockchain.', details: errorMessage });
   }
 };
-
-
-
 
 export const eliminarConvocatoria = async (req: Request, res: Response) => {
   try {

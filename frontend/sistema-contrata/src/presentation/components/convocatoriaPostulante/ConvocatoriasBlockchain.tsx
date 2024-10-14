@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 
 interface Convocatoria {
-  subidoBlockchain: any;
+  subidoBlockchain: boolean;
   id?: string;
   titulo: string;
   descripcion: string;
   formacionAcademica: string;
   experienciaLaboral: string;
   lugarTrabajo: string;
+  estado: string; // Nuevo campo para el estado de la convocatoria
   fechasImportantes: {
     inicioConvocatoria: string;
     cierreConvocatoria: string;
@@ -23,12 +24,20 @@ interface Convocatoria {
 
 const ConvocatoriasBlockchain: React.FC = () => {
   const [convocatorias, setConvocatorias] = useState<Convocatoria[]>([]);
-  const [postulaciones, setPostulaciones] = useState<string[]>([]); // Almacenar los IDs de convocatorias a las que el usuario ya se postuló
+  const [postulaciones, setPostulaciones] = useState<string[]>([]);
+  const [documentosSubidos, setDocumentosSubidos] = useState({
+    cvUrl: '',
+    dniUrl: '',
+    certificadosEstudiosUrl: '',
+    certificadosTrabajoUrl: '',
+    declaracionJuradaUrl: ''
+  });
   const [mensaje, setMensaje] = useState<string | null>(null);
 
   useEffect(() => {
-    loadConvocatorias(); // Cargar convocatorias al montar el componente
-    loadPostulaciones(); // Cargar postulaciones del usuario al montar el componente
+    loadConvocatorias();
+    loadPostulaciones();
+    cargarDocumentosSubidos();
   }, []);
 
   // Cargar convocatorias desde la API del backend
@@ -42,16 +51,16 @@ const ConvocatoriasBlockchain: React.FC = () => {
           "x-auth-token": token
         }
       });
-  
+
       if (!response.ok) {
         throw new Error("Error al cargar las convocatorias");
       }
-  
+
       const data = await response.json();
-  
+
       // Filtrar solo las convocatorias que se subieron a la blockchain
       const convocatoriasBlockchain = data.filter((convocatoria: Convocatoria) => convocatoria.subidoBlockchain);
-  
+
       setConvocatorias(convocatoriasBlockchain);
     } catch (error) {
       console.error('Error al cargar las convocatorias desde el backend:', error);
@@ -71,7 +80,6 @@ const ConvocatoriasBlockchain: React.FC = () => {
 
       const data = await response.json();
       if (response.ok && data) {
-        // Guardar los IDs de las convocatorias a las que el postulante ya se postuló
         const idsConvocatoriasPostuladas = data.postulaciones.map((postulacion: any) => postulacion.idConvocatoria);
         setPostulaciones(idsConvocatoriasPostuladas);
       }
@@ -80,8 +88,61 @@ const ConvocatoriasBlockchain: React.FC = () => {
     }
   };
 
+  // Cargar documentos subidos por el postulante
+  const cargarDocumentosSubidos = async () => {
+    try {
+      const token = localStorage.getItem('token') || '';
+      const response = await fetch('http://localhost:3000/api/postulante/obtener-documentos', {
+        method: 'GET',
+        headers: {
+          'x-auth-token': token,
+        }
+      });
+
+      const data = await response.json();
+      console.log('Documentos recibidos:', data); // Verificación de datos
+
+      if (response.ok && data) {
+        setDocumentosSubidos({
+          cvUrl: data.cv || '',
+          dniUrl: data.dni || '',
+          certificadosEstudiosUrl: data.certificadosEstudios || '',
+          certificadosTrabajoUrl: data.certificadosTrabajo || '',
+          declaracionJuradaUrl: data.declaracionJurada || ''
+        });
+      } else {
+        setMensaje('No se encontraron documentos subidos.');
+      }
+    } catch (error) {
+      console.error('Error al cargar los documentos subidos:', error);
+    }
+  };
+
   // Manejar la postulación a una convocatoria
   const handlePostularse = async (convocatoria: Convocatoria) => {
+    const documentosFaltantes: string[] = [];
+
+    if (convocatoria.documentosRequeridos.cv && !documentosSubidos.cvUrl) {
+      documentosFaltantes.push('CV');
+    }
+    if (convocatoria.documentosRequeridos.dni && !documentosSubidos.dniUrl) {
+      documentosFaltantes.push('DNI');
+    }
+    if (convocatoria.documentosRequeridos.certificadosEstudios && !documentosSubidos.certificadosEstudiosUrl) {
+      documentosFaltantes.push('Certificados de Estudios');
+    }
+    if (convocatoria.documentosRequeridos.certificadosTrabajo && !documentosSubidos.certificadosTrabajoUrl) {
+      documentosFaltantes.push('Certificados de Trabajo');
+    }
+    if (convocatoria.documentosRequeridos.declaracionJurada && !documentosSubidos.declaracionJuradaUrl) {
+      documentosFaltantes.push('Declaración Jurada');
+    }
+
+    if (documentosFaltantes.length > 0) {
+      setMensaje(`Faltan los siguientes documentos: ${documentosFaltantes.join(', ')}. Por favor, ve a "Mis Documentos" para subirlos.`);
+      return;
+    }
+
     try {
       const token = localStorage.getItem('token') || '';
       const response = await fetch(`http://localhost:3000/api/postulante/postular/${convocatoria.id}`, {
@@ -92,15 +153,16 @@ const ConvocatoriasBlockchain: React.FC = () => {
         },
         body: JSON.stringify({ idConvocatoria: convocatoria.id }),
       });
-  
+
       if (!response.ok) {
         throw new Error('Error al realizar la postulación');
       }
-  
+
       setMensaje('Postulación realizada con éxito.');
-      setPostulaciones([...postulaciones, convocatoria.id!]); // Añadir el ID de la convocatoria postulada
+      setPostulaciones([...postulaciones, convocatoria.id!]);
     } catch (error) {
       console.error('Error al postularse:', error);
+      setMensaje('Error al intentar postularse.');
     }
   };
 
@@ -125,7 +187,9 @@ const ConvocatoriasBlockchain: React.FC = () => {
                 </div>
 
                 <div>
-                  {postulaciones.includes(convocatoria.id!) ? (
+                  {convocatoria.estado === 'evaluacion' ? (
+                    <p className="text-red-500 font-bold">Convocatoria cerrada.</p>
+                  ) : postulaciones.includes(convocatoria.id!) ? (
                     <p className="text-green-500 font-bold">Ya te has postulado.</p>
                   ) : (
                     <button
@@ -145,7 +209,7 @@ const ConvocatoriasBlockchain: React.FC = () => {
       </div>
 
       {mensaje && (
-        <div className="bg-green-500 text-white p-4 mt-4 rounded">
+        <div className={`p-4 mt-4 rounded ${mensaje.startsWith('Faltan') ? 'bg-red-500' : 'bg-green-500'} text-white`}>
           {mensaje}
         </div>
       )}

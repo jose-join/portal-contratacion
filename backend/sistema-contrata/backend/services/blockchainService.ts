@@ -34,12 +34,20 @@ const account = web3Http.eth.accounts.privateKeyToAccount(`0x${privateKey}`);
 web3Http.eth.accounts.wallet.add(account);  // Añadir la cuenta al wallet
 
 // ======= Función para firmar y enviar transacciones a la blockchain =======
-export const enviarABlockchain = async (convocatoriaData: { id: string, inicioConvocatoria: number, cierreConvocatoria: number, fechaEvaluacion: number, publicacionResultados: number, postulantes?: string[] }) => {
+export const enviarABlockchain = async (convocatoriaData: { 
+  id: string, 
+  inicioConvocatoria: number, 
+  cierreConvocatoria: number, 
+  fechaEvaluacion: number, 
+  publicacionResultados: number, 
+  postulantes?: string[] 
+}) => {
   try {
     const contrato = new web3Http.eth.Contract(abi, contractAddress);
 
     let tx;
     if (!convocatoriaData.postulantes) {
+      // Crear la convocatoria sin postulantes
       console.log(`Creando convocatoria en blockchain: ${convocatoriaData.id}`);
       tx = contrato.methods.crearConvocatoria(
         convocatoriaData.id,
@@ -49,10 +57,20 @@ export const enviarABlockchain = async (convocatoriaData: { id: string, inicioCo
         convocatoriaData.publicacionResultados
       );
     } else {
+      // Agregar postulantes a una convocatoria existente
       console.log(`Subiendo convocatoria con postulantes: ${convocatoriaData.id}`);
+
+      // Definir los valores por defecto para los campos que faltan
+      const experiencia = convocatoriaData.postulantes.map(() => "Sin experiencia especificada");
+      const habilidades = convocatoriaData.postulantes.map(() => "Sin habilidades especificadas");
+      const cumpleRequisitos = convocatoriaData.postulantes.map(() => true); // Todos cumplen por defecto
+
       tx = contrato.methods.agregarPostulantes(
         convocatoriaData.id,
-        convocatoriaData.postulantes
+        convocatoriaData.postulantes,  // Lista de postulantes
+        experiencia,                   // Lista de experiencias por defecto
+        habilidades,                   // Lista de habilidades por defecto
+        cumpleRequisitos               // Lista de requisitos cumplidos (true/false)
       );
     }
 
@@ -83,6 +101,7 @@ export const enviarABlockchain = async (convocatoriaData: { id: string, inicioCo
     };
   }
 };
+
 
 // ======= Función para escuchar todos los eventos en la blockchain y guardarlos en Firebase =======
 export const escucharEventos = () => {

@@ -13,8 +13,10 @@
     "moduleResolution": "node",            // Resuelve los módulos como Node.js
     "allowSyntheticDefaultImports": true,  // Permite importaciones por defecto en módulos que no tienen exportación por defecto
     "experimentalDecorators": true,        // Permite usar decoradores (si fuera necesario)
-    "emitDecoratorMetadata": true          // Genera metadatos para decoradores (opcional)
+    "emitDecoratorMetadata": true,
+    "types": ["node", "jest"]        // Genera metadatos para decoradores (opcional)
   },
-  "include": ["backend/**/*.ts", "scripts/**/*.ts"],  // Incluye los archivos TypeScript en estos directorios
-  "exclude": ["node_modules", "dist"]                 // Excluye node_modules y la carpeta de salida
-}
+  "include": ["backend/**/*.ts", "scripts/**/*.ts", "./test"],  // Incluye los archivos TypeScript en estos directorios
+  "exclude": ["node_modules", "dist"],  
+  "files": ["./hardhat.config.ts"]               // Excluye node_modules y la carpeta de salida
+} 

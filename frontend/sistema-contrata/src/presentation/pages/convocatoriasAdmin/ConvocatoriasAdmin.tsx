@@ -39,9 +39,14 @@ const ConvocatoriasAdminPage = () => {
 
         const data = await response.json();
 
+        // Filtrar solo las convocatorias subidas a la blockchain
+        const convocatoriasSubidas = data.filter(
+          (convocatoria: Convocatoria) => convocatoria.subidoBlockchain
+        );
+
         // Verificar que la API devuelve los campos correctos
         const convocatoriasConPostulantes = await Promise.all(
-          data.map(async (convocatoria: any) => {
+          convocatoriasSubidas.map(async (convocatoria: any) => {
             const postulantesResponse = await fetch(
               `http://localhost:3000/api/convocatoria/postulantes/${convocatoria.id}`,
               {
@@ -83,14 +88,14 @@ const ConvocatoriasAdminPage = () => {
           "x-auth-token": token || "",  // Asegúrate de que el token esté correctamente almacenado
         },
       });
-  
+
       if (!response.ok) {
         throw new Error("Error al subir la convocatoria a la blockchain");
       }
-  
+
       const data = await response.json();
       console.log("Convocatoria subida con éxito:", data);
-  
+
       // Actualizar el estado local para reflejar los cambios en el frontend
       setConvocatorias(convocatorias.map(convocatoria =>
         convocatoria.id === idConvocatoria ? { ...convocatoria, estado: "evaluacion" } : convocatoria
@@ -100,7 +105,6 @@ const ConvocatoriasAdminPage = () => {
       setError("Error al subir la convocatoria a la blockchain o al actualizar el estado");
     }
   };
-  
 
   // Función para actualizar el estado de la convocatoria
   const actualizarEstado = async (id: string, nuevoEstado: "evaluacion" | "publicacion") => {
@@ -131,7 +135,7 @@ const ConvocatoriasAdminPage = () => {
     <div className="p-6">
       <h1 className="text-3xl font-bold text-white mb-6">Gestión de Convocatorias</h1>
       <p className="text-gray-400 mb-4">
-        Revisa y administra las convocatorias activas y sus postulantes.
+        Revisa y administra las convocatorias subidas a la blockchain.
       </p>
 
       {error && <p className="text-red-500 text-lg font-semibold">{error}</p>}
@@ -154,7 +158,17 @@ const ConvocatoriasAdminPage = () => {
                 <td className="py-3 px-4 border-b border-gray-700">{convocatoria.titulo}</td>
                 <td className="py-3 px-4 border-b border-gray-700">{convocatoria.numeroDePostulantes}</td>
                 <td className="py-3 px-4 border-b border-gray-700">
-                  <span className={`px-3 py-1 rounded-full font-semibold bg-${convocatoria.estado === "proceso" ? "yellow" : "green"}-200`}>
+                  <span
+                    className={`px-3 py-1 rounded-full font-semibold ${
+                      convocatoria.estado === "proceso"
+                        ? "bg-yellow-500 text-black"
+                        : convocatoria.estado === "evaluacion"
+                        ? "bg-green-500 text-white"
+                        : convocatoria.estado === "publicacion"
+                        ? "bg-blue-500 text-white"
+                        : "bg-gray-500 text-white"
+                    }`}
+                  >
                     {convocatoria.estado}
                   </span>
                 </td>
@@ -163,7 +177,7 @@ const ConvocatoriasAdminPage = () => {
                     className="bg-indigo-500 text-white font-bold py-2 px-4 rounded-full hover:bg-indigo-700 transition-all duration-200 ease-in-out mr-2"
                     onClick={() => subirABlockchain(convocatoria.id)}
                   >
-                    Subir a Blockchain (Proceso &gt; Evaluación)
+                    <i className="fa-solid fa-cloud-upload-alt"></i> {/* Font Awesome Icon */}
                   </button>
                 </td>
               </tr>

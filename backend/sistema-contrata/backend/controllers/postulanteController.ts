@@ -106,7 +106,6 @@ export const postularseConvocatoria = async (req: CustomRequest, res: Response) 
   }
 };
 
-
 export const subirDocumentosPostulante = async (req: CustomRequest, res: Response) => {
   try {
     const idPostulante = req.user?.userId;  // Obtener el ID del postulante desde el token
@@ -250,6 +249,7 @@ export const verPostulaciones = async (req: CustomRequest, res: Response) => {
     res.status(500).json({ error: 'Error al obtener las postulaciones', details: errorMessage });
   }
 };
+
 export const verificarPostulacion = async (req: CustomRequest, res: Response) => {
   try {
     const idPostulante = req.user?.userId;  // Obtener el ID del postulante desde el token
